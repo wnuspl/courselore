@@ -31,6 +31,7 @@ import courseConversationMessageContent, {
   ApplicationCourseConversationMessageContent,
 } from "./course-conversation-message-content.mjs";
 import emails from "./emails.mjs";
+import digest from "./digest.mjs"
 import errors from "./errors.mjs";
 
 export type Application = {
@@ -216,6 +217,7 @@ await courseConversations(application);
 await courseConversationMessages(application);
 await courseConversationMessageContent(application);
 await emails(application);
+await digest(application);
 await errors(application);
 
 if (application.commandLineArguments.values.type === undefined) {
