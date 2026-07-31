@@ -20,7 +20,8 @@ export default async (application: Application): Promise<void> => {
       >,
       response,
     ) => {
-      const yesterday  = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      const yesterday  = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+
       const collectDigestMessages = (limit: string) => {
         // This would be check for if they want digests
         // if (!request.state.user?.emailNotificationsForAllMessages) {
@@ -84,6 +85,10 @@ export default async (application: Application): Promise<void> => {
         return out.join("");
       }
 
+
+
+
+
       if (
         request.state.systemSettings === undefined ||
         request.state.user === undefined ||
@@ -94,7 +99,7 @@ export default async (application: Application): Promise<void> => {
       application.database.scheduledBackgroundJobWorker(
         {
           schedule: "@minutely",
-          type: "other"
+          type: "digest"
         },
         () => { 
           console.log(`Fetching messages from ${yesterday.toLocaleDateString()}`);
