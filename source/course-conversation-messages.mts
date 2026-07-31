@@ -115,7 +115,7 @@ export default async (application: Application): Promise<void> => {
       )
         throw "validation";
       let sendLiveConnectionUpdates = false;
-      application.database.executeTransaction(() => {
+      application.database.transaction(() => {
         const previousCourseConversationMessageDraft =
           application.database.get<{ content: string }>(
             sql`
@@ -159,7 +159,7 @@ export default async (application: Application): Promise<void> => {
               ${request.body.courseConversationMessageType ?? "courseConversationMessageTypeMessage"},
               ${request.body.courseConversationMessageVisibility ?? "courseConversationMessageVisibilityEveryone"},
               ${request.body.courseConversationMessageAnonymity ?? "courseConversationMessageAnonymityNone"},
-              ${request.body.content}
+              ${request.body.content!}
             );
           `,
         );
@@ -262,7 +262,7 @@ export default async (application: Application): Promise<void> => {
           courseConversationMessageContent: request.body.content,
           mode: "textContent",
         });
-      application.database.executeTransaction(() => {
+      application.database.transaction(() => {
         application.database.run(
           sql`
             delete from "courseConversationMessageDrafts"
@@ -326,7 +326,7 @@ export default async (application: Application): Promise<void> => {
                     ${request.body.courseConversationMessageType ?? "courseConversationMessageTypeMessage"},
                     ${request.body.courseConversationMessageVisibility ?? "courseConversationMessageVisibilityEveryone"},
                     ${request.body.courseConversationMessageAnonymity ?? "courseConversationMessageAnonymityNone"},
-                    ${request.body.content},
+                    ${request.body.content!},
                     ${utilities
                       .tokenize(contentTextContent, {
                         stopWords:
@@ -669,7 +669,7 @@ export default async (application: Application): Promise<void> => {
               `,
             });
         }
-        application.database.executeTransaction(() => {
+        application.database.transaction(() => {
           for (const courseConversationMessageEmailNotification of courseConversationMessageEmailNotifications)
             application.database.backgroundJob({
               type: "email",
@@ -694,6 +694,8 @@ export default async (application: Application): Promise<void> => {
       response,
     ) => {
       if (
+        typeof request.pathname.courseConversationMessagePublicId !==
+          "string" ||
         request.state.courseParticipation === undefined ||
         request.state.courseConversation === undefined
       )
@@ -733,7 +735,7 @@ export default async (application: Application): Promise<void> => {
               "courseConversation" = ${request.state.courseConversation.id} and
               "publicId" = ${request.pathname.courseConversationMessagePublicId} and (
                 "courseConversationMessageVisibility" = 'courseConversationMessageVisibilityEveryone'
-                $${
+                ${
                   request.state.courseParticipation.courseParticipationRole ===
                   "courseParticipationRoleInstructor"
                     ? sql`
@@ -1395,9 +1397,9 @@ export default async (application: Application): Promise<void> => {
           update "courseConversationMessages"
           set
             "updatedAt" = ${new Date().toISOString()},
-            $${typeof request.body.courseConversationMessageType === "string" ? sql`"courseConversationMessageType" = ${request.body.courseConversationMessageType},` : sql``}
-            $${typeof request.body.courseConversationMessageVisibility === "string" ? sql`"courseConversationMessageVisibility" = ${request.body.courseConversationMessageVisibility},` : sql``}
-            $${typeof request.body.courseConversationMessageAnonymity === "string" ? sql`"courseConversationMessageAnonymity" = ${request.body.courseConversationMessageAnonymity},` : sql``}
+            ${typeof request.body.courseConversationMessageType === "string" ? sql`"courseConversationMessageType" = ${request.body.courseConversationMessageType},` : sql``}
+            ${typeof request.body.courseConversationMessageVisibility === "string" ? sql`"courseConversationMessageVisibility" = ${request.body.courseConversationMessageVisibility},` : sql``}
+            ${typeof request.body.courseConversationMessageAnonymity === "string" ? sql`"courseConversationMessageAnonymity" = ${request.body.courseConversationMessageAnonymity},` : sql``}
             "content" = ${request.body.content},
             "contentSearch" = ${utilities
               .tokenize(contentTextContent, {
@@ -1463,7 +1465,7 @@ export default async (application: Application): Promise<void> => {
           ).id
       )
         return;
-      application.database.executeTransaction(() => {
+      application.database.transaction(() => {
         application.database.run(
           sql`
             delete from "courseConversationMessageViews"
@@ -1517,7 +1519,7 @@ export default async (application: Application): Promise<void> => {
         request.state.courseConversationMessage === undefined
       )
         return;
-      application.database.executeTransaction(() => {
+      application.database.transaction(() => {
         if (
           application.database.get(
             sql`
@@ -1571,7 +1573,7 @@ export default async (application: Application): Promise<void> => {
         request.state.courseConversationMessage === undefined
       )
         return;
-      application.database.executeTransaction(() => {
+      application.database.transaction(() => {
         if (
           application.database.get(
             sql`
@@ -1633,7 +1635,7 @@ export default async (application: Application): Promise<void> => {
         request.state.courseConversationMessage === undefined
       )
         return;
-      application.database.executeTransaction(() => {
+      application.database.transaction(() => {
         const courseConversationMessageLike = application.database.get<{
           id: number;
         }>(

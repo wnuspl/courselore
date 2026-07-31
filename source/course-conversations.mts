@@ -288,7 +288,7 @@ export default async (application: Application): Promise<void> => {
                         where
                           "course" = ${request.state.course.id} and (
                             "courseConversationVisibility" = 'courseConversationVisibilityEveryone'
-                            $${
+                            ${
                               request.state.courseParticipation
                                 .courseParticipationRole ===
                               "courseParticipationRoleInstructor"
@@ -502,7 +502,7 @@ export default async (application: Application): Promise<void> => {
                                     "courseConversationMessages"."id" = "courseConversationMessageViews"."courseConversationMessage" and
                                     "courseConversationMessageViews"."courseParticipation" = ${request.state.courseParticipation!.id}
                                   where
-                                    "courseConversationMessages"."courseConversation" = ${courseConversation.id} $${
+                                    "courseConversationMessages"."courseConversation" = ${courseConversation.id} ${
                                       request.state.courseParticipation!
                                         .courseParticipationRole !==
                                       "courseParticipationRoleInstructor"
@@ -1195,7 +1195,7 @@ export default async (application: Application): Promise<void> => {
             where
               "courseConversations"."course" = ${request.state.course.id} and (
                 "courseConversations"."courseConversationVisibility" = 'courseConversationVisibilityEveryone'
-                $${
+                ${
                   request.state.courseParticipation.courseParticipationRole ===
                   "courseParticipationRoleInstructor"
                     ? sql`
@@ -1275,7 +1275,7 @@ export default async (application: Application): Promise<void> => {
                 "courseConversationMessages"."courseConversation" = "courseConversations"."id" and
                 "courseConversations"."course" = ${request.state.course.id} and (
                   "courseConversations"."courseConversationVisibility" = 'courseConversationVisibilityEveryone'
-                  $${
+                  ${
                     request.state.courseParticipation
                       .courseParticipationRole ===
                     "courseParticipationRoleInstructor"
@@ -1293,7 +1293,7 @@ export default async (application: Application): Promise<void> => {
                       "courseConversationParticipations"."courseParticipation" = ${request.state.courseParticipation.id}
                   )
                 )
-              $${
+              ${
                 request.state.courseParticipation!.courseParticipationRole !==
                 "courseParticipationRoleInstructor"
                   ? sql`
@@ -1553,7 +1553,7 @@ export default async (application: Application): Promise<void> => {
                     "publicId" = ${request.search["reuse.courseConversation"]} and
                     "course" = ${course.id} and (
                       "courseConversationVisibility" = 'courseConversationVisibilityEveryone'
-                      $${
+                      ${
                         courseParticipation.courseParticipationRole ===
                         "courseParticipationRoleInstructor"
                           ? sql`
@@ -1612,7 +1612,7 @@ export default async (application: Application): Promise<void> => {
             where
               "course" = ${request.state.course.id} and (
                 "courseConversationVisibility" = 'courseConversationVisibilityEveryone'
-                $${
+                ${
                   request.state.courseParticipation.courseParticipationRole ===
                   "courseParticipationRoleInstructor"
                     ? sql`
@@ -2787,7 +2787,7 @@ export default async (application: Application): Promise<void> => {
           courseConversationMessageContent: request.body.content,
           mode: "textContent",
         });
-      application.database.executeTransaction(() => {
+      application.database.transaction(() => {
         courseConversation = application.database.get<{
           id: number;
           publicId: string;
@@ -2818,11 +2818,11 @@ export default async (application: Application): Promise<void> => {
                   values (
                     ${String(request.state.course!.courseConversationsNextPublicId)},
                     ${request.state.course!.id},
-                    ${request.body.courseConversationType},
+                    ${request.body.courseConversationType!},
                     ${Number(false)},
-                    ${request.body.courseConversationVisibility},
+                    ${request.body.courseConversationVisibility!},
                     ${Number(request.body.pinned === "true")},
-                    ${request.body.title},
+                    ${request.body.title!},
                     ${utilities
                       .tokenize(request.body.title!, {
                         stopWords:
@@ -2928,7 +2928,7 @@ export default async (application: Application): Promise<void> => {
                     ${"courseConversationMessageTypeMessage"},
                     ${"courseConversationMessageVisibilityEveryone"},
                     ${request.body.courseConversationMessageAnonymity ?? "courseConversationMessageAnonymityNone"},
-                    ${request.body.content},
+                    ${request.body.content!},
                     ${utilities
                       .tokenize(contentTextContent, {
                         stopWords:
@@ -2995,6 +2995,7 @@ export default async (application: Application): Promise<void> => {
       response,
     ) => {
       if (
+        typeof request.pathname.courseConversationPublicId !== "string" ||
         request.state.course === undefined ||
         request.state.courseParticipation === undefined
       )
@@ -3026,7 +3027,7 @@ export default async (application: Application): Promise<void> => {
             "course" = ${request.state.course.id} and
             "publicId" = ${request.pathname.courseConversationPublicId} and (
               "courseConversationVisibility" = 'courseConversationVisibilityEveryone'
-              $${
+              ${
                 request.state.courseParticipation.courseParticipationRole ===
                 "courseParticipationRoleInstructor"
                   ? sql`
@@ -4770,7 +4771,7 @@ export default async (application: Application): Promise<void> => {
                           "content"
                         from "courseConversationMessages"
                         where
-                          "courseConversation" = ${request.state.courseConversation!.id} $${
+                          "courseConversation" = ${request.state.courseConversation!.id} ${
                             request.state.courseParticipation!
                               .courseParticipationRole !==
                             "courseParticipationRoleInstructor"
@@ -6758,21 +6759,21 @@ export default async (application: Application): Promise<void> => {
         )
       )
         throw "validation";
-      application.database.executeTransaction(() => {
+      application.database.transaction(() => {
         application.database.run(
           sql`
             update "courseConversations"
             set
-              "courseConversationType" = ${request.body.courseConversationType},
+              "courseConversationType" = ${request.body.courseConversationType!},
               "questionResolved" = ${Number(request.body.questionResolved === "true")},
-              "courseConversationVisibility" = ${request.body.courseConversationVisibility},
+              "courseConversationVisibility" = ${request.body.courseConversationVisibility!},
               "pinned" = ${
                 request.state.courseParticipation!.courseParticipationRole ===
                 "courseParticipationRoleInstructor"
                   ? Number(request.body.pinned === "true")
                   : request.state.courseConversation!.pinned
               },
-              "title" = ${request.body.title},
+              "title" = ${request.body.title!},
               "titleSearch" = ${utilities
                 .tokenize(request.body.title!)
                 .map((tokenWithPosition) => tokenWithPosition.token)
@@ -6886,7 +6887,7 @@ export default async (application: Application): Promise<void> => {
         request.state.courseConversation === undefined
       )
         return;
-      application.database.executeTransaction(() => {
+      application.database.transaction(() => {
         application.database.run(
           sql`
             update "courseParticipations"
