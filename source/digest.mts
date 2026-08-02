@@ -44,52 +44,52 @@ export default async (application: Application): Promise<void> => {
         // const isStudent = courseParticipation.courseParticipationRole === "courseParticipationRoleStudent";
         const isStudent = true;
 
-          const conversations = application.database.all<{
+          const courseConversations = application.database.all<{
             title: string,
             id: number,
+            publicId: string,
           }>(sql`
-              select "id", "title" from "courseConversations"
+              select "id", "title", "publicId" from "courseConversations"
               where "course" = ${courseParticipation.course}`
           );
 
           const course = application.database.get<{
-              name: string
+              name: string;
+              publicId: string;
           }>(sql`
-              select "name" from "courses"
+              select "name", "publicId" from "courses"
               where "id" = ${courseParticipation.course}
-          `);
-          
-          const courseTitleDisplay = `
-              <h1>${course!.name}</h1>
-          `;
+          `)!;
 
 
           const courseConversationsMessages = [];
 
           
-          for (const conversation of conversations) {
-              const title = conversation.title;
+          for (const courseConversation of courseConversations) {
+              const title = courseConversation.title;
               // get only the initial message
               const message = application.database.get<{ 
                   content: string,
                   createdAt: string,
                   courseConversationMessageVisibility:
                     | "courseConversationMessageVisibilityEveryone"
-                    | "courseConversationMessageVisibilityCourseParticipationRoleInstructors";
+                    | "courseConversationMessageVisibilityCourseParticipationRoleInstructors",
                   courseConversationMessageAnonymity:
                     | "courseConversationMessageAnonymityNone"
                     | "courseConversationMessageAnonymityCourseParticipationRoleStudents"
-                    | "courseConversationMessageAnonymityEveryone";
-                  createdByCourseParticipation: any;
+                    | "courseConversationMessageAnonymityEveryone",
+                  createdByCourseParticipation: number | null,
+                  publicId: string,
               }>(sql`
                   select
                     "content",
                     "createdAt",
                     "courseConversationMessageVisibility",
                     "courseConversationMessageAnonymity",
-                    "createdByCourseParticipation"
+                    "createdByCourseParticipation",
+                    "publicId"
                   from "courseConversationMessages"
-                  where "courseConversation" = ${conversation.id}
+                  where "courseConversation" = ${courseConversation.id}
               `)!;
 
               if (message.createdAt < limit.toISOString()) {
@@ -125,14 +125,24 @@ export default async (application: Application): Promise<void> => {
               }
 
 
+              const url = `https://${
+                    application.userConfiguration.hostname
+                  }/courses/${course.publicId}/conversations/${courseConversation.publicId}?${new URLSearchParams(
+                    {
+                      message: message.publicId,
+                    },
+              ).toString()}`
+
+
+
               courseConversationsMessages.push(
-                `<h2>${title} - ${name}</h2><p>${message.content}</p>`
+                `<h2>${title} - ${name}</h2><p>${url}</p><p>${message.content}</p>`
               );
             }
             if (courseConversationsMessages.length != 0) {
-            out.push(courseTitleDisplay);
-            out.push(...courseConversationsMessages);
-          }
+              out.push(`<h1>${course.name}</h1>`);
+              out.push(...courseConversationsMessages);
+            }
       }
 
 
