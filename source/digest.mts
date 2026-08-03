@@ -136,7 +136,7 @@ export default async (application: Application): Promise<void> => {
 
 
               courseConversationsMessages.push(
-                `<h2>${title} - ${name}</h2><p>${url}</p><p>${message.content}</p>`
+                `<a href="${url}"><h2>${title} - ${name}</h2></a><p>${message.content}</p>`
               );
             }
             if (courseConversationsMessages.length != 0) {
