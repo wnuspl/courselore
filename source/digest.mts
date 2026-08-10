@@ -21,7 +21,7 @@ export default async (application: Application): Promise<void> => {
       response,
     ) => {
 
-      const limit  = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+      const limit  = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000);
       if (
         request.state.systemSettings === undefined ||
         request.state.user === undefined ||
@@ -32,10 +32,12 @@ export default async (application: Application): Promise<void> => {
       const out: string[] = [];
 
       const courseParticipations = application.database.all<{
-          course: number
-          courseParticipationRole: "courseParticipationRoleInstructor" | "courseParticipationRoleStudent"
+          id: number,
+          course: number,
+          publicId: string,
+          courseParticipationRole: "courseParticipationRoleInstructor" | "courseParticipationRoleStudent",
       }>(sql`
-          select "course", "courseParticipationRole" from "courseParticipations"
+          select "id", "course", "publicId", "courseParticipationRole" from "courseParticipations"
           where "user" = ${request.state.user.id}
       `);
       
@@ -54,10 +56,12 @@ export default async (application: Application): Promise<void> => {
           );
 
           const course = application.database.get<{
-              name: string;
-              publicId: string;
+              id: number,
+              name: string,
+              publicId: string,
+              courseState: "courseStateActive" | "courseStateArchived"
           }>(sql`
-              select "name", "publicId" from "courses"
+              select "id", "name", "publicId" "courseState" from "courses"
               where "id" = ${courseParticipation.course}
           `)!;
 
@@ -71,6 +75,7 @@ export default async (application: Application): Promise<void> => {
               const message = application.database.get<{ 
                   content: string,
                   createdAt: string,
+                  updatedAt: string,
                   courseConversationMessageVisibility:
                     | "courseConversationMessageVisibilityEveryone"
                     | "courseConversationMessageVisibilityCourseParticipationRoleInstructors",
@@ -84,6 +89,7 @@ export default async (application: Application): Promise<void> => {
                   select
                     "content",
                     "createdAt",
+                    "updatedAt",
                     "courseConversationMessageVisibility",
                     "courseConversationMessageAnonymity",
                     "createdByCourseParticipation",
@@ -105,23 +111,22 @@ export default async (application: Application): Promise<void> => {
                 || (isStudent && message.courseConversationMessageAnonymity === "courseConversationMessageAnonymityCourseParticipationRoleStudents")
                 || !message.createdByCourseParticipation;
               
-              let name = "Anonymous";
+              let displayName = "Anonymous";
               if (!isAnonymous) {
                 const senderCourseParticipation = application.database.get<{
                   user: number
                 }>(sql`
                   select "user" from "courseParticipations"
                   where "id" = ${message.createdByCourseParticipation}
-                `)!;
-                
-                const sender = application.database.get<{
-                  name: string
-                }>(sql`
-                  select "name" from "users"
-                  where "id" = ${senderCourseParticipation.user}
-                `)!;
+                `);
 
-                name = sender.name;
+                displayName = senderCourseParticipation ? application.database.get<{
+                    name: string
+                  }>(sql`
+                    select "name" from "users"
+                    where "id" = ${senderCourseParticipation.user}
+                  `)!.name
+                  : "Deleted course participant";
               }
 
 
@@ -134,14 +139,30 @@ export default async (application: Application): Promise<void> => {
               ).toString()}`
 
 
+              const content = await application.partials.courseConversationMessageContentProcessor(
+                {
+                  course,
+                  courseParticipation:
+                    courseParticipation,
+                    courseConversation,
+                    courseConversationMessage: message,
+                    mode: "emailNotification",
+                  },
+              )
+
 
               courseConversationsMessages.push(
-                `<a href="${url}"><h2>${title} - ${name}</h2></a><p>${message.content}</p>`
+                `<a href="${url}">
+                    <strong>${title}</strong>
+                </a> • ${displayName}
+                <p>${content}</p>
+                <br>`
               );
             }
             if (courseConversationsMessages.length != 0) {
               out.push(`<h1>${course.name}</h1>`);
               out.push(...courseConversationsMessages);
+              out.push("<hr>");
             }
       }
 
