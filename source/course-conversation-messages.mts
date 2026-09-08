@@ -43,7 +43,7 @@ export default async (application: Application): Promise<void> => {
       schedule: "@minutely",
       type: "digest"
     },
-    () => {
+    async () => {
       const users = application.database.all<{
         id: number,
         email: string
@@ -159,17 +159,16 @@ export default async (application: Application): Promise<void> => {
             ).toString()}`
 
 
-            const content = message.content;
-            // const content = await application.partials.courseConversationMessageContentProcessor(
-            //   {
-            //     course,
-            //     courseParticipation:
-            //     courseParticipation,
-            //     courseConversation,
-            //     courseConversationMessage: message,
-            //     mode: "emailNotification",
-            //   },
-            // );
+            const content = await application.partials.courseConversationMessageContentProcessor(
+              {
+                course,
+                courseParticipation:
+                courseParticipation,
+                courseConversation,
+                courseConversationMessage: message,
+                mode: "emailNotification",
+              },
+            );
 
 
             courseConversationsMessages.push(
